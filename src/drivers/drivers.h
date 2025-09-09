@@ -11,6 +11,8 @@
 
  #ifndef __DRIVERS_H__
  #define __DRIVERS_H__
+ #define buttons_h
+
 
  #include "console.h"
  #include "buttons.h"
