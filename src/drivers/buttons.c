@@ -55,4 +55,50 @@ button_state_t buttons_get_state(ece353_button_t button)
     return state;
 }
 
+static cyhal_timer_t button_timer; // Timer object for button debouncing
+static cyhal_timer_cfg_t button_timer_cfg; // Timer configuration structure
+// Function to initialize the timer for button debouncing
+
+static void button_timer_handler(void *arg, cyhal_timer_event_t event)
+{
+    static uint8_t button_counts[3] = {0, 0, 0};
+
+    uint8_t sw1 = (PORT_BUTTON_SW1->IN & MASK_BUTTON_PIN_SW1) ? 1 : 0;
+    uint8_t sw2 = (PORT_BUTTON_SW2->IN & MASK_BUTTON_PIN_SW2) ? 1 : 0;
+    uint8_t sw3 = (PORT_BUTTON_SW3->IN & MASK_BUTTON_PIN_SW3) ? 1 : 0;
+
+    // SW1 debounce
+    if (sw1 == 0) {
+        if (button_counts[0] < 255) button_counts[0]++;
+        if (button_counts[0] == 5) {
+            ECE353_Events.sw1 = 1;
+        }
+    } else {
+        button_counts[0] = 0;
+    }
+
+    // SW2 debounce
+    if (sw2 == 0) {
+        if (button_counts[1] < 255) button_counts[1]++;
+        if (button_counts[1] == 5) {
+            ECE353_Events.sw2 = 1;
+        }
+    } else {
+        button_counts[1] = 0;
+    }
+
+    // SW3 debounce
+    if (sw3 == 0) {
+        if (button_counts[2] < 255) button_counts[2]++;
+        if (button_counts[2] == 5) {
+            ECE353_Events.sw3 = 1;
+        }
+    } else {
+        button_counts[2] = 0;
+    }
+}
+cy_rslt_t buttons_init_timer(void)
+{
+    return timer_init(&button_timer, &button_timer_cfg, 500000, button_timer_handler);
+}
 
