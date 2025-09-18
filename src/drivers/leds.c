@@ -36,3 +36,24 @@ void leds_set_state(ece353_led_t led, ece353_led_state_t state)
     // LEDs are active HIGH: 1 = ON, 0 = OFF
     cyhal_gpio_write(led_pins[led], state == LED_ON ? 1 : 0);
 }
+
+// Function that configures the RGB LED pins to be controlled by PWM
+cy_rslt_t leds_init_pwm(
+    cyhal_pwm_t *pwm_obj_red,
+    cyhal_pwm_t *pwm_obj_green,
+    cyhal_pwm_t *pwm_obj_blue
+)
+{
+    cy_rslt_t rslt = CY_RSLT_SUCCESS;
+
+    // Initialize PWM for RED LED
+    rslt |= cyhal_pwm_init(pwm_obj_red, PIN_LED_RED, NULL);
+
+    // Initialize PWM for GREEN LED
+    rslt |= cyhal_pwm_init(pwm_obj_green, PIN_LED_GREEN, NULL);
+
+    // Initialize PWM for BLUE LED
+    rslt |= cyhal_pwm_init(pwm_obj_blue, PIN_LED_BLUE, NULL);
+
+    return rslt;
+}
