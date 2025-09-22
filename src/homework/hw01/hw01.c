@@ -22,14 +22,7 @@
 
 #if defined(HW01)
 
-// Fallback state constants if hw01.h uses different names
-#ifndef HW01_STATE_SET_TIME
-#define HW01_STATE_SET_TIME           ((hw01_state_t)0)
-#define HW01_STATE_SET_ALARM          ((hw01_state_t)1)
-#define HW01_STATE_RUNNING            ((hw01_state_t)2)
-#define HW01_STATE_ALARM_TRIGGERED    ((hw01_state_t)3)
-#define HW01_STATE_ERROR              ((hw01_state_t)4)
-#endif
+// REMOVE the fallback state constants block entirely
 
 // Remove incorrect forward declaration that conflicted with lcd-fonts.h
 // void lcd_draw_time(uint16_t row, uint16_t col, uint8_t hours, uint8_t minutes, uint16_t f_color, uint16_t b_color);
@@ -39,8 +32,20 @@ __attribute__((weak)) void lcd_init(void) {}
 __attribute__((weak)) void lcd_backlight_on(void) {}
 __attribute__((weak)) void lcd_clear_screen(uint16_t color) { (void)color; }
 
-// Weak stubs so we can link without modifying buzzer.c
-#if 0
+// Remove the old conditional buzzer stubs block and replace with unconditional weak stubs
+// __attribute__((weak)) cy_rslt_t buzzer_init(float duty_cycle, uint32_t frequency) { ... }
+// __attribute__((weak)) void buzzer_on(void) {}
+// __attribute__((weak)) void buzzer_off(void) {}
+
+// If you truly need stubs, build with ECE353_BUZZER_STUB defined.
+// #if defined(ECE353_BUZZER_STUB)
+// __attribute__((weak)) cy_rslt_t buzzer_init(float duty_cycle, uint32_t frequency) { ... }
+// __attribute__((weak)) void buzzer_on(void) {}
+// __attribute__((weak)) void buzzer_off(void) {}
+// #endif
+
+// Provide weak buzzer stubs so linking succeeds when the driver isn't included.
+// Real implementations (non-weak) will override these at link time.
 __attribute__((weak)) cy_rslt_t buzzer_init(float duty_cycle, uint32_t frequency)
 {
     (void)duty_cycle; (void)frequency;
@@ -48,7 +53,6 @@ __attribute__((weak)) cy_rslt_t buzzer_init(float duty_cycle, uint32_t frequency
 }
 __attribute__((weak)) void buzzer_on(void) {}
 __attribute__((weak)) void buzzer_off(void) {}
-#endif
 
 char APP_DESCRIPTION[] = "ECE353 F25 HW01 -- Alarm Clock";
 
@@ -183,7 +187,7 @@ void hw01_state_set_time(
         events->sw3 = 0;
         // End blink, show clock green as time "set"
         draw_alarm_clock(LCD_COLOR_GREEN);
-        switch_state(HW01_STATE_SET_ALARM);                 // FSM.ST-010
+        switch_state(STATE_HW01_SET_ALARM);                 // CHANGED
         return;
     }
 
@@ -247,13 +251,12 @@ void hw01_state_set_alarm(
         events->sw3 = 0;
         // Stop blink, keep clock time as-is, alarm stays OFF by default
         erase_speaker();
-        g_alarm_enabled = false;                 // CHANGED: leave alarm OFF
-        draw_speaker(LCD_COLOR_GRAY);           // show disabled
+        g_alarm_enabled = false;
+        draw_speaker(LCD_COLOR_GRAY);
 
-        // Keep fast mode so time advances quickly in Running (for testing)
         g_fast_mode = true;
 
-        switch_state(HW01_STATE_RUNNING);
+        switch_state(STATE_HW01_RUNNING);                   // CHANGED
         return;
     }
 
@@ -297,7 +300,7 @@ void hw01_state_running(
     // SW3 -> Set Time
     if (events->sw3) {
         events->sw3 = 0;
-        switch_state(HW01_STATE_SET_TIME);                      // FSM.RUN-008
+        switch_state(STATE_HW01_SET_TIME);                  // CHANGED
         return;
     }
 
@@ -334,7 +337,7 @@ void hw01_state_running(
         (g_hours == g_alarm_hours) &&
         (g_minutes == g_alarm_minutes))
     {
-        switch_state(HW01_STATE_ALARM_TRIGGERED);               // FSM.RUN-007
+        switch_state(STATE_HW01_ALARM_TRIGGERED);           // CHANGED
         return;
     }
 }
@@ -432,7 +435,7 @@ void hw01_state_alarm_triggered(
         draw_speaker(LCD_COLOR_GRAY);
         g_alarm_enabled = false;
 
-        switch_state(HW01_STATE_RUNNING);
+        switch_state(STATE_HW01_RUNNING);                   // CHANGED
         return;
     }
 }
@@ -502,7 +505,7 @@ void app_init_hw(void)
     rslt = timer_init(&s_alarm_timer, &s_alarm_timer_cfg, 10000000U, handler_alarm_timer);
     if (rslt != CY_RSLT_SUCCESS) { printf("alarm 100ms timer init failed: 0x%08lX\n\r", (unsigned long)rslt); CY_ASSERT(0); }
 
-    // Buzzer PWM ready — 50% @ 3.5 kHz
+    // Initialize buzzer PWM (no startup beep)
     (void)buzzer_init(50.0f, 3500U);
 }
 
@@ -517,8 +520,8 @@ void app_main(void)
 {
     alarm_clock_info_t alarm_info = (alarm_clock_info_t){0};
 
-    // Initial state
-    g_state = HW01_STATE_SET_TIME;    // FSM.INIT-002
+    // Initial state and defaults
+    g_state = STATE_HW01_INIT;
     g_state_entry = true;
     g_hours = 0;
     g_minutes = 0;
@@ -527,32 +530,40 @@ void app_main(void)
     g_alarm_minutes = 0;
     g_alarm_enabled = false;
     g_alarm_buzzing = false;
-    g_fast_mode = false;    // default normal speed on boot
+    g_fast_mode = false;
 
     while (1)
     {
         switch (g_state)
         {
-            case HW01_STATE_SET_TIME:
+            case STATE_HW01_INIT:
+                // Enter Set Time on boot
+                switch_state(STATE_HW01_SET_TIME);
+                break;
+
+            case STATE_HW01_SET_TIME:
                 hw01_state_set_time(&alarm_info, &ECE353_Events);
                 break;
 
-            case HW01_STATE_SET_ALARM:
+            case STATE_HW01_SET_ALARM:
                 hw01_state_set_alarm(&alarm_info, &ECE353_Events);
                 break;
 
-            case HW01_STATE_RUNNING:
+            case STATE_HW01_RUNNING:
                 hw01_state_running(&alarm_info, &ECE353_Events);
                 break;
 
-            case HW01_STATE_ALARM_TRIGGERED:
+            case STATE_HW01_ALARM_TRIGGERED:
                 hw01_state_alarm_triggered(&alarm_info, &ECE353_Events);
                 break;
 
+            case STATE_HW01_ERROR:
             default:
                 hw01_state_error(&alarm_info, &ECE353_Events);
                 break;
         }
     }
 }
-#endif
+
+// Close HW01 compile guard
+#endif // defined(HW01)
