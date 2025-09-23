@@ -24,25 +24,11 @@
 
 // REMOVE the fallback state constants block entirely
 
-// Remove incorrect forward declaration that conflicted with lcd-fonts.h
-// void lcd_draw_time(uint16_t row, uint16_t col, uint8_t hours, uint8_t minutes, uint16_t f_color, uint16_t b_color);
-
 // Weak stubs so we can link without modifying other files
 __attribute__((weak)) void lcd_init(void) {}
 __attribute__((weak)) void lcd_backlight_on(void) {}
 __attribute__((weak)) void lcd_clear_screen(uint16_t color) { (void)color; }
 
-// Remove the old conditional buzzer stubs block and replace with unconditional weak stubs
-// __attribute__((weak)) cy_rslt_t buzzer_init(float duty_cycle, uint32_t frequency) { ... }
-// __attribute__((weak)) void buzzer_on(void) {}
-// __attribute__((weak)) void buzzer_off(void) {}
-
-// If you truly need stubs, build with ECE353_BUZZER_STUB defined.
-// #if defined(ECE353_BUZZER_STUB)
-// __attribute__((weak)) cy_rslt_t buzzer_init(float duty_cycle, uint32_t frequency) { ... }
-// __attribute__((weak)) void buzzer_on(void) {}
-// __attribute__((weak)) void buzzer_off(void) {}
-// #endif
 
 // Provide weak buzzer stubs so linking succeeds when the driver isn't included.
 // Real implementations (non-weak) will override these at link time.
