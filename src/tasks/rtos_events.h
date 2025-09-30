@@ -23,6 +23,9 @@ extern EventGroupHandle_t ECE353_RTOS_Events;
 /*******************************************************************************
 * Macros used to define the system events
 ******************************************************************************/
+#define ECE353_EVENT_SW1_PRESSED    (1 << 0)    /* Bit 0 - SW1 button pressed */
+#define ECE353_EVENT_SW2_PRESSED    (1 << 1)    /* Bit 1 - SW2 button pressed */
+#define ECE353_EVENT_SW3_PRESSED    (1 << 2)    /* Bit 2 - SW3 button pressed */
 
 #endif // ECE353_FREERTOS
 

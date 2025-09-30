@@ -28,18 +28,80 @@
  {
     (void)arg; // Unused parameter
 
+    // Previous button states for edge detection
+    bool sw1_prev = true;  // Buttons are active low, so start with true (not pressed)
+    bool sw2_prev = true;
+    bool sw3_prev = true;
+    
+    // Debounce counters (need 2 consecutive readings for 30ms debounce)
+    uint8_t sw1_debounce = 0;
+    uint8_t sw2_debounce = 0;
+    uint8_t sw3_debounce = 0;
+
     while (1)
     {
         // Monitor button SW1
+        bool sw1_current = ((PORT_BUTTON_SW1->IN & MASK_BUTTON_PIN_SW1) != 0);
         
+        if (!sw1_current && sw1_prev) {
+            // Potential falling edge detected, start debouncing
+            sw1_debounce = 1;
+        } else if (!sw1_current && sw1_debounce > 0) {
+            // Continue debouncing
+            sw1_debounce++;
+            if (sw1_debounce >= 2) {
+                // 30ms debounce complete (2 * 15ms), set event
+                xEventGroupSetBits(ECE353_RTOS_Events, ECE353_EVENT_SW1_PRESSED);
+                sw1_debounce = 0;
+            }
+        } else {
+            // Button released or no press, reset debounce
+            sw1_debounce = 0;
+        }
+        sw1_prev = sw1_current;
 
         // Monitor button SW2
-
+        bool sw2_current = ((PORT_BUTTON_SW2->IN & MASK_BUTTON_PIN_SW2) != 0);
+        
+        if (!sw2_current && sw2_prev) {
+            // Potential falling edge detected, start debouncing
+            sw2_debounce = 1;
+        } else if (!sw2_current && sw2_debounce > 0) {
+            // Continue debouncing
+            sw2_debounce++;
+            if (sw2_debounce >= 2) {
+                // 30ms debounce complete (2 * 15ms), set event
+                xEventGroupSetBits(ECE353_RTOS_Events, ECE353_EVENT_SW2_PRESSED);
+                sw2_debounce = 0;
+            }
+        } else {
+            // Button released or no press, reset debounce
+            sw2_debounce = 0;
+        }
+        sw2_prev = sw2_current;
 
         // Monitor button SW3
-  
+        bool sw3_current = ((PORT_BUTTON_SW3->IN & MASK_BUTTON_PIN_SW3) != 0);
+        
+        if (!sw3_current && sw3_prev) {
+            // Potential falling edge detected, start debouncing
+            sw3_debounce = 1;
+        } else if (!sw3_current && sw3_debounce > 0) {
+            // Continue debouncing
+            sw3_debounce++;
+            if (sw3_debounce >= 2) {
+                // 30ms debounce complete (2 * 15ms), set event
+                xEventGroupSetBits(ECE353_RTOS_Events, ECE353_EVENT_SW3_PRESSED);
+                sw3_debounce = 0;
+            }
+        } else {
+            // Button released or no press, reset debounce
+            sw3_debounce = 0;
+        }
+        sw3_prev = sw3_current;
 
-        // Debounce delay
+        // Debounce delay - sample every 15ms
+        vTaskDelay(pdMS_TO_TICKS(15));
     }
  }
 

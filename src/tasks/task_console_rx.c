@@ -52,7 +52,6 @@ void task_console_rx(void *param)
  * @return true if resources were initialized successfully
  * @return false if resource initialization failed
  */
- */
 bool task_console_resources_init_rx(void)
 {
     BaseType_t rslt;

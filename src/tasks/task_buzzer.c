@@ -27,8 +27,39 @@
 void task_buzzer(void *arg)
 {
     (void)arg; // Unused parameter
+    
+    EventBits_t events;
+    bool buzzer_state = false;  // Track current buzzer state
+    
     while (1)
     {
+        // Wait for SW1 or SW2 button press events
+        events = xEventGroupWaitBits(
+            ECE353_RTOS_Events,                          // Event group handle
+            ECE353_EVENT_SW1_PRESSED | ECE353_EVENT_SW2_PRESSED,  // Bits to wait for
+            pdTRUE,                                      // Clear bits on exit
+            pdFALSE,                                     // Wait for ANY bit (OR operation)
+            portMAX_DELAY                                // Wait indefinitely
+        );
+        
+        // Check which button was pressed and control buzzer accordingly
+        if (events & ECE353_EVENT_SW1_PRESSED) {
+            // SW1 pressed - Turn buzzer ON
+            if (!buzzer_state) {
+                buzzer_on();
+                buzzer_state = true;
+                printf("Buzzer ON (SW1 pressed)\n\r");
+            }
+        }
+        
+        if (events & ECE353_EVENT_SW2_PRESSED) {
+            // SW2 pressed - Turn buzzer OFF
+            if (buzzer_state) {
+                buzzer_off();
+                buzzer_state = false;
+                printf("Buzzer OFF (SW2 pressed)\n\r");
+            }
+        }
     }
 }
 #endif

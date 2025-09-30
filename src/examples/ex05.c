@@ -23,41 +23,73 @@ char APP_DESCRIPTION[] = "ECE353: Example 05 - FreeRTOS Tasks";
 /*****************************************************************************/
 /* Global Variables                                                          */
 /*****************************************************************************/
-
+volatile bool buzzer_enabled = false;
 /*****************************************************************************/
 /* Function Declarations                                                     */
 /*****************************************************************************/
 void task_button_sw1(void *arg);
 void task_button_sw2(void *arg);
-void task_buzzer(void *arg);
+void task_buzzer_ex05(void *arg);
 
 /*****************************************************************************/
 /* Function Definitions                                                      */
 /*****************************************************************************/
 void task_button_sw1(void *arg)
-{
-    (void)arg; // Unused parameter
+{   (void)arg; // unused parameter
+    uint32_t button_count = 0;
+    bool button_pressed_last = false;
+    printf("Task SW1 created\n\r");
     while(1)
     {
-
+        bool button_pressed_now = ((PORT_BUTTON_SW1 -> IN & MASK_BUTTON_PIN_SW1) == 0);
+        
+        if (button_pressed_now && !button_pressed_last) {
+            // Button just pressed (rising edge detection)
+            printf("Button SW1 Pressed -- Enabled Buzzer\n\r");
+            buzzer_enabled = true;
+        }
+        
+        button_pressed_last = button_pressed_now;
+        vTaskDelay(pdMS_TO_TICKS(15));
     }
 }
 
 void task_button_sw2(void *arg)
 {
-    (void)arg; // Unused parameter
-
+    (void)arg; // unused parameter
+    printf("Task SW2 created\n\r");
+    bool button_pressed_last = false;
     while (1)
     {
+        bool button_pressed_now = ((PORT_BUTTON_SW2 -> IN & MASK_BUTTON_PIN_SW2) == 0);
+        
+        if (button_pressed_now && !button_pressed_last) {
+            // Button just pressed (rising edge detection)
+            printf("Button SW2 Pressed -- Disabled Buzzer\n\r");
+            buzzer_enabled = false;
+        }
+        
+        button_pressed_last = button_pressed_now;
+        vTaskDelay(pdMS_TO_TICKS(15));
     }
 }
 
-void task_buzzer(void *arg)
+void task_buzzer_ex05(void *arg)
 {
-    (void)arg; // Unused parameter
-
+    (void)arg; // unused parameter
+    printf("Task Buzzer created\n\r");
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(100));
+        if (buzzer_enabled){
+            printf("Buzzer enabled\n\r");
+            buzzer_on();
+        }
+        else{
+            printf("Buzzer disabled\n\r");
+            buzzer_off();
+        }
+        
     }
 }
 
@@ -68,8 +100,6 @@ void task_buzzer(void *arg)
  */
 void app_init_hw(void)
 {
-    cy_rslt_t rslt;
-
     console_init();
     printf("**************************************************\n\r");
     printf("* %s\n\r", APP_DESCRIPTION);
@@ -79,8 +109,10 @@ void app_init_hw(void)
     printf("**************************************************\n\r");
 
     /* Initialize the buttons */
-
+    buttons_init_gpio();
     /* Initialize the buzzer */
+    buzzer_init(0.8, 2000);
+
 }
 
 /*****************************************************************************/
@@ -93,8 +125,35 @@ void app_init_hw(void)
 void app_main(void)
 {
     /* Register the tasks with FreeRTOS*/
+    xTaskCreate(
+        task_button_sw1,
+        "SW1 Task",
+        configMINIMAL_STACK_SIZE,
+        NULL,
+        tskIDLE_PRIORITY + 1,
+        NULL
+    );
 
+    xTaskCreate(
+        task_button_sw2,
+        "SW2 Task",
+        configMINIMAL_STACK_SIZE,
+        NULL,
+        tskIDLE_PRIORITY + 1,
+        NULL
+    );
+    
+    xTaskCreate(
+        task_buzzer_ex05,
+        "Buzzer Task",
+        configMINIMAL_STACK_SIZE,
+        NULL,
+        tskIDLE_PRIORITY + 1,
+        NULL
+    );
+    
     /* Start the scheduler*/
+    vTaskStartScheduler();
 
     /* Will never reach this loop once the scheduler starts */
     while (1)
