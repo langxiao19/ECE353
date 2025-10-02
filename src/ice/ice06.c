@@ -65,7 +65,18 @@ void app_init_hw(void)
 
 void task_print_directions(void *arg)
 {
-
+    (void)arg; // Unused parameter
+    joystick_position_t current_pos;
+    
+    while(1)
+    {
+        // Wait indefinitely for a message from the joystick queue
+        if (xQueueReceive(Queue_Joystick, &current_pos, portMAX_DELAY) == pdTRUE)
+        {
+            // Print the joystick position using the lookup table
+            printf("Joystick Position Changed: %s\n\r", Joystick_Pos_Strings[current_pos]);
+        }
+    }
 }
 
 /*****************************************************************************/
@@ -78,8 +89,20 @@ void task_print_directions(void *arg)
 void app_main(void)
 {
     /* Initialize joystick resources */
+    joystick_init();
     
     /* Register the tasks with FreeRTOS*/
+    task_joystick_init();
+    
+    // Create the print directions task
+    xTaskCreate(
+        task_print_directions,   // Task function
+        "Print Directions",      // Task name
+        2048,                   // Stack size
+        NULL,                   // Parameters
+        1,                      // Priority (lower than joystick task)
+        NULL                    // Task handle
+    );
 
     /* Start the scheduler*/
     vTaskStartScheduler();
