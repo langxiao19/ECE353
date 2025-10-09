@@ -203,7 +203,7 @@ standard names - or at least those used in the unmodified vector table. */
 #define HEAP_ALLOCATION_TYPE5                   (5)     /* heap_5.c*/
 #define NO_HEAP_ALLOCATION                      (0)
 
-#define configHEAP_ALLOCATION_SCHEME            (HEAP_ALLOCATION_TYPE3)
+#define configHEAP_ALLOCATION_SCHEME            (HEAP_ALLOCATION_TYPE4)
 
 /* Check if the ModusToolbox Device Configurator Power personality parameter
  * "System Idle Power Mode" is set to either "CPU Sleep" or "System Deep Sleep".

@@ -37,11 +37,12 @@ typedef enum {
 typedef struct{
     uint8_t row;            // Row (0-9)
     uint8_t col;            // Column (0-9)
-    // ADD other fields as needed
+    uint16_t border_color;
+    uint16_t fill_color;          
 } battleship_payload_t;
 
 bool battleship_draw_game_board(uint8_t player_id);
-bool battleship_draw_cursor(uint8_t col, uint8_t row);
+bool battleship_draw_cursor(uint8_t col, uint8_t row, uint16_t border_color, uint16_t fill_color);
 bool battleship_clear_cursor(uint8_t col, uint8_t row, uint8_t player_id);
 
 #endif // ECE353_FREERTOS

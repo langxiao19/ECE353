@@ -20,6 +20,14 @@
  static void lcd_console_erase_line(uint8_t x_offset, uint8_t line)
 {
 
+    uint16_t y = line * LCD_CONSOLE_LINE_HEIGHT; // Calculate the y offset
+    lcd_draw_rectangle(
+        x_offset, 
+        y,
+        320 - x_offset,
+        LCD_CONSOLE_LINE_HEIGHT,
+        LCD_COLOR_BLACK,
+        false);
 }
 
 /**
@@ -77,6 +85,19 @@ bool lcd_console_draw_string(lcd_console_payload_t *payload, uint8_t line)
         return false; // Invalid payload
     }
 
+    uint16_t x_offset = payload->x_offset; // Get the x offset
+    lcd_console_erase_line(x_offset, line); // Erase the line before drawing the new string
+
+    for (uint32_t i = 0; i < payload->length; i++)
+    {
+        // Draw each character in the string
+        if (!lcd_console_draw_char(&x_offset, line * LCD_CONSOLE_LINE_HEIGHT, payload->message[i], LCD_COLOR_WHITE, LCD_COLOR_BLACK))
+        {
+            vPortFree(payload->message); // Free the message buffer
+            return false; // Failed to draw character
+        }
+    }
+    vPortFree(payload->message); // Free the message buffer
     return true;
 }
 #endif // ECE353_FREERTOS

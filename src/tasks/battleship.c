@@ -36,28 +36,96 @@ bool battleship_get_box_coordinates(lcd_coord_t *coord, uint8_t col, uint8_t row
 
 /**
  * @brief 
- * Used to draw an empty game board for the specified player.
+ * Draw a 10x10 grid of blue Battleship rectangles.  
+ * Each rectangle is 20 pixels by 20 pixels.
  * @param player_id 
  * @return true 
  * @return false 
  */
 bool battleship_draw_game_board(uint8_t player_id)
 {
+    lcd_coord_t coord;
+    
+    // Draw a 10x10 grid of battleship rectangles
+    for(uint8_t row = 0; row < 10; row++)
+    {
+        for(uint8_t col = 0; col < 10; col++)
+        {
+            // Get the LCD coordinates for this battleship square
+            if(battleship_get_box_coordinates(&coord, col, row))
+            {
+                // Draw outer rectangle (20x20 blue border)
+                lcd_draw_rectangle(
+                    coord.x,
+                    coord.y,
+                    BATTLESHIP_BOX_WIDTH,
+                    BATTLESHIP_BOX_HEIGHT,
+                    LCD_COLOR_BLUE,
+                    false
+                );
+                
+                // Draw inner rectangle (16x16 black fill)
+                lcd_draw_rectangle(
+                    coord.x + BATTLESHIP_BORDER_WIDTH/2,
+                    coord.y + BATTLESHIP_BORDER_WIDTH/2,
+                    BATTLESHIP_BOX_WIDTH - BATTLESHIP_BORDER_WIDTH,
+                    BATTLESHIP_BOX_HEIGHT - BATTLESHIP_BORDER_WIDTH,
+                    LCD_COLOR_BLACK,
+                    false
+                );
+            }
+            else
+            {
+                return false; // Invalid coordinates
+            }
+        }
+    }
     return true;
 }
 
 /**
  * @brief 
- * Draws the cursor for the currently active location by changing
- * the color of the box border.
+ * Draw a single Battleship rectangle
  * @param col 
  * @param row 
+ * @param border_color 
+ * @param fill_color 
  * @return true 
  * @return false 
  */
-bool battleship_draw_cursor(uint8_t col, uint8_t row)
+bool battleship_draw_cursor(uint8_t col, uint8_t row, uint16_t border_color, uint16_t fill_color)
 {
-    return false;
+    lcd_coord_t coord;
+    
+    // Get the LCD coordinates for this battleship square
+    if(battleship_get_box_coordinates(&coord, col, row))
+    {
+        // Draw outer rectangle (20x20 with specified border color)
+        lcd_draw_rectangle(
+            coord.x,
+            coord.y,
+            BATTLESHIP_BOX_WIDTH,
+            BATTLESHIP_BOX_HEIGHT,
+            border_color,
+            false
+        );
+        
+        // Draw inner rectangle (16x16 with specified fill color)
+        lcd_draw_rectangle(
+            coord.x + BATTLESHIP_BORDER_WIDTH/2,
+            coord.y + BATTLESHIP_BORDER_WIDTH/2,
+            BATTLESHIP_BOX_WIDTH - BATTLESHIP_BORDER_WIDTH,
+            BATTLESHIP_BOX_HEIGHT - BATTLESHIP_BORDER_WIDTH,
+            fill_color,
+            false
+        );
+        
+        return true;
+    }
+    else
+    {
+        return false; // Invalid coordinates
+    }
 }
 
 /**

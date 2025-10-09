@@ -21,6 +21,8 @@
 
 typedef enum {
     LCD_CMD_CLEAR_SCREEN,
+    LCD_CMD_DRAW_BOARD,
+    LCD_CMD_DRAW_CURSOR,
     LCD_CONSOLE_DRAW_MESSAGE,
 } lcd_command_t;
 
@@ -30,12 +32,12 @@ typedef enum {
 } lcd_cmd_status_t;
 
 typedef struct {
-    lcd_command_t command;  // Command to execute
-    QueueHandle_t response_queue; // Queue for sending responses
-    union {
-        lcd_console_payload_t console; // Console payload
-        battleship_payload_t battleship; // Battleship game payload
-    } payload; // Payload for the command
+    lcd_command_t command;
+    QueueHandle_t response_queue;
+    union{
+        lcd_console_payload_t console;
+        battleship_payload_t battleship;
+    } payload;
 } lcd_msg_t;
 
 

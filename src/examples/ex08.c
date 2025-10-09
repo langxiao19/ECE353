@@ -38,23 +38,66 @@ void task_system_control(void *pvParameters)
 {
     (void)pvParameters; // Unused parameter
 
-    int8_t row = 0;
-    int8_t col = 0;
     int8_t button_presses = 0;
     EventBits_t events;
     
     lcd_msg_t lcd_msg;
     
+    // Print startup message from within the task
+    printf("Task System Control started\n\r");
+    printf("Press SW1 to increment button count\n\r");
+    
     // Clear the screen
+    lcd_msg.command = LCD_CMD_CLEAR_SCREEN;
+    xQueueSend(xQueue_LCD, &lcd_msg, portMAX_DELAY);
 
-    // Request 20 bytes to store a string
+    // Initialize the message - allocate memory for initial display
+    lcd_msg.payload.console.message = pvPortMalloc(30 * sizeof(char));
+    if (lcd_msg.payload.console.message == NULL)
+    {
+        printf("Failed to allocate memory for LCD message\n");
+        CY_ASSERT(0);
+    }
+
+    lcd_msg.command = LCD_CONSOLE_DRAW_MESSAGE;
+    lcd_msg.payload.console.x_offset = 10;
+    lcd_msg.payload.console.y_offset = 100;
+    snprintf(lcd_msg.payload.console.message, 30, "Button Presses: %d", button_presses);
+    lcd_msg.payload.console.length = strlen(lcd_msg.payload.console.message);
+    xQueueSend(xQueue_LCD, &lcd_msg, portMAX_DELAY);
 
     // Print the number of button presses to the LCD
 
     while(1)
     {
         // Wait for SW1 events
-        
+        events = xEventGroupWaitBits(
+            ECE353_RTOS_Events, 
+            ECE353_EVENT_SW1_PRESSED, 
+            pdTRUE,         // Clear the bit before returning
+            pdFALSE,        // Wait for any bit to be set
+            portMAX_DELAY); // Wait forever
+
+        if (events & ECE353_EVENT_SW1_PRESSED)
+        {
+            button_presses++;
+            printf("Button pressed! Count: %d\n\r", button_presses);
+            
+            // Allocate new memory for each message update
+            lcd_msg.payload.console.message = pvPortMalloc(30 * sizeof(char));
+            if (lcd_msg.payload.console.message == NULL)
+            {
+                printf("Failed to allocate memory for LCD message\n");
+                continue; // Skip this update instead of asserting
+            }
+
+            lcd_msg.command = LCD_CONSOLE_DRAW_MESSAGE;
+            lcd_msg.payload.console.x_offset = 10;
+            lcd_msg.payload.console.y_offset = 100;
+            snprintf(lcd_msg.payload.console.message, 30, "Button Presses: %d", button_presses);
+            lcd_msg.payload.console.length = strlen(lcd_msg.payload.console.message);
+            xQueueSend(xQueue_LCD, &lcd_msg, portMAX_DELAY);
+        }
         // Update the button press count
     
         // Print the number of button presses to the LCD
@@ -71,13 +114,7 @@ void app_init_hw(void)
     cy_rslt_t rslt;
 
     console_init();
-    printf("**************************************************\n\r");
-    printf("* %s\n\r", APP_DESCRIPTION);
-    printf("* Date: %s\n\r", __DATE__);
-    printf("* Time: %s\n\r", __TIME__);
-    printf("* Name:%s\n\r", NAME);
-    printf("**************************************************\n\r");
-
+    
     rslt = buttons_init_gpio();
     if (rslt != CY_RSLT_SUCCESS)
     {
@@ -108,6 +145,15 @@ void app_main(void)
     /* Register the tasks with FreeRTOS*/
 
     ECE353_RTOS_Events = xEventGroupCreate();
+    
+    /* Print startup information */
+    printf("**************************************************\n\r");
+    printf("* %s\n\r", APP_DESCRIPTION);
+    printf("* Date: %s\n\r", __DATE__);
+    printf("* Time: %s\n\r", __TIME__);
+    printf("* Name: %s\n\r", NAME);
+    printf("**************************************************\n\r");
+    printf("Starting FreeRTOS tasks...\n\r");
 
     /* Initialize the Button Task resources */
     if (!task_button_init())
@@ -135,6 +181,7 @@ void app_main(void)
     );
 
     /* Start the scheduler*/
+    printf("Starting FreeRTOS scheduler...\n\r");
     vTaskStartScheduler();
 
     /* Will never reach this loop once the scheduler starts */

@@ -20,9 +20,51 @@ void task_lcd(void *pvParameters)
 {
     (void)pvParameters; // Unused parameter
 
+    lcd_msg_t lcd_msg;
 
     while(1)
     {
+        xQueueReceive(xQueue_LCD, &lcd_msg, portMAX_DELAY);
+
+        switch(lcd_msg.command)
+        {
+            case LCD_CMD_CLEAR_SCREEN:
+            {
+                lcd_clear_screen(LCD_COLOR_BLACK);
+                break;
+            }
+
+            case LCD_CMD_DRAW_BOARD:
+            {
+                battleship_draw_game_board(lcd_msg.payload.battleship.row);
+                break;
+            }
+
+            case LCD_CMD_DRAW_CURSOR:
+            {
+                battleship_draw_cursor(
+                    lcd_msg.payload.battleship.col,
+                    lcd_msg.payload.battleship.row,
+                    lcd_msg.payload.battleship.border_color,
+                    lcd_msg.payload.battleship.fill_color
+                );
+                break;
+            }
+
+            case LCD_CONSOLE_DRAW_MESSAGE:
+            {
+                if (!lcd_console_draw_string(&lcd_msg.payload.console, 1))
+                {
+                    printf("Failed to draw console message\n");
+                }
+                break;
+            }
+            default:
+            {
+                // Unknown command
+                break;
+            }
+        }
     }
 }
 

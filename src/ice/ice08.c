@@ -37,11 +37,56 @@ char APP_DESCRIPTION[] = "ECE353: ICE 08 - FreeRTOS LCD Gatekeeper";
 void task_system_control(void *pvParameters)
 {
     (void)pvParameters; // Unused parameter
+    
+    lcd_msg_t lcd_msg;
+    static uint8_t cursor_col = 0;
+    static uint8_t cursor_row = 0;
+    
+    // Clear the LCD screen first
+    lcd_msg.command = LCD_CMD_CLEAR_SCREEN;
+    lcd_msg.response_queue = NULL; // No response needed
+    xQueueSend(xQueue_LCD, &lcd_msg, portMAX_DELAY);
+    
+    // Draw the game board
+    lcd_msg.command = LCD_CMD_DRAW_BOARD;
+    lcd_msg.response_queue = NULL; // No response needed
+    lcd_msg.payload.battleship.row = 0; // Player ID (not used in current implementation)
+    xQueueSend(xQueue_LCD, &lcd_msg, portMAX_DELAY);
 
     while(1)
     {
+        // Draw cursor at current position
+        lcd_msg.command = LCD_CMD_DRAW_CURSOR;
+        lcd_msg.response_queue = NULL; // No response needed
+        lcd_msg.payload.battleship.col = cursor_col;
+        lcd_msg.payload.battleship.row = cursor_row;
+        lcd_msg.payload.battleship.border_color = BATTLESHIP_CURSOR_COLOR;
+        lcd_msg.payload.battleship.fill_color = LCD_COLOR_BLACK;
+        xQueueSend(xQueue_LCD, &lcd_msg, portMAX_DELAY);
+        
         // Sleep for 100 ms
         vTaskDelay(pdMS_TO_TICKS(100));
+        
+        // Clear the cursor by redrawing with normal colors
+        lcd_msg.command = LCD_CMD_DRAW_CURSOR;
+        lcd_msg.response_queue = NULL; // No response needed
+        lcd_msg.payload.battleship.col = cursor_col;
+        lcd_msg.payload.battleship.row = cursor_row;
+        lcd_msg.payload.battleship.border_color = LCD_COLOR_BLUE;
+        lcd_msg.payload.battleship.fill_color = LCD_COLOR_BLACK;
+        xQueueSend(xQueue_LCD, &lcd_msg, portMAX_DELAY);
+        
+        // Move cursor to next position
+        cursor_col++;
+        if (cursor_col >= 10) // Wrap to next row
+        {
+            cursor_col = 0;
+            cursor_row++;
+            if (cursor_row >= 10) // Wrap to beginning
+            {
+                cursor_row = 0;
+            }
+        }
     }
 }
 
