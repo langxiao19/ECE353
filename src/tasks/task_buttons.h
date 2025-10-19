@@ -19,7 +19,7 @@
  #include "rtos_events.h"
 
  void task_buttons(void *arg);
- bool task_button_init(void);
+ bool task_buttons_init(void);
  #endif
 
 #endif // __TASK_BUTTONS_H__

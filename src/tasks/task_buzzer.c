@@ -13,6 +13,7 @@
 #ifdef ECE353_FREERTOS
 
 #include "task_buzzer.h"
+#include "task_console.h"
 
 /**
  * @brief 
@@ -48,7 +49,7 @@ void task_buzzer(void *arg)
             if (!buzzer_state) {
                 buzzer_on();
                 buzzer_state = true;
-                printf("Buzzer ON (SW1 pressed)\n\r");
+                task_console_printf("Buzzer ON (SW1 pressed)\n");
             }
         }
         
@@ -57,7 +58,7 @@ void task_buzzer(void *arg)
             if (buzzer_state) {
                 buzzer_off();
                 buzzer_state = false;
-                printf("Buzzer OFF (SW2 pressed)\n\r");
+                task_console_printf("Buzzer OFF (SW2 pressed)\n");
             }
         }
     }

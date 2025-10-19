@@ -11,6 +11,10 @@
 #include "task_console.h"
 
 #ifdef ECE353_FREERTOS  
+
+/* ADD CODE - External declaration for the transmit circular buffer */
+extern circular_buffer_t *circular_buffer_tx;
+
 /**
  * @brief 
  * This function is the event handler for the console UART.
@@ -33,10 +37,69 @@ void console_event_handler(void *handler_arg, cyhal_uart_event_t event)
     if ((event & CYHAL_UART_IRQ_RX_NOT_EMPTY) == CYHAL_UART_IRQ_RX_NOT_EMPTY)
     {
         // ADD CODE 
+
+        // read in the character
+        cyhal_uart_getc(&cy_retarget_io_uart_obj, &c, 0);
+
+        // echo the character to the hardware FIFO
+        cyhal_uart_putc(&cy_retarget_io_uart_obj, c);
+
+        // if character is equal to backspace or the delete key
+        // remove the last character from the array
+        if (c == '\b' || c == 0x7F) // backspace or delete
+        {
+            if (produce_console_buffer->index > 0)
+            {
+                produce_console_buffer->index--;
+            }
+        }
+        // else if the current character is the \n or \r character
+        // null terminate the string
+        // send a task notification to the bottom half task
+        else if (c == '\n' || c == '\r')
+        {
+            // Only process if we have data in the buffer
+            // This prevents double-swapping when both \r and \n are sent
+            if (produce_console_buffer->index > 0)
+            {
+                // Swap the produce and consume buffers
+                console_buffer_t *temp = produce_console_buffer;
+                produce_console_buffer = consume_console_buffer;
+                consume_console_buffer = temp;
+                
+                // Reset the index of the new produce buffer
+                produce_console_buffer->index = 0;
+                
+                // Notify the task that data is ready
+                vTaskNotifyGiveFromISR(TaskHandle_Console_Rx, &xHigherPriorityTaskWoken);
+                portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+            }
+        }
+        // else add the character to the buffer and increment the index
+        else
+        {
+            if (produce_console_buffer->index < (CONSOLE_MAX_MESSAGE_LENGTH - 1))
+            {
+                produce_console_buffer->data[produce_console_buffer->index] = c;
+                produce_console_buffer->index++;
+            }
+        }
     }
     if ((event & CYHAL_UART_IRQ_TX_EMPTY) == CYHAL_UART_IRQ_TX_EMPTY)
     {
         /* ADD CODE */
+        char tx_char;
+
+        // If the transmit circular buffer is empty, disable Transmit Empty Interrupts
+        if (circular_buffer_empty(circular_buffer_tx))
+        {
+            cyhal_uart_enable_event(&cy_retarget_io_uart_obj, CYHAL_UART_IRQ_TX_EMPTY, 7, false);
+        }
+        // If the transmit circular buffer is not empty, transmit the next character
+        else if (circular_buffer_remove(circular_buffer_tx, &tx_char))
+        {
+            cyhal_uart_putc(&cy_retarget_io_uart_obj, tx_char);
+        }
     }
     else
     {
@@ -81,4 +144,4 @@ bool task_console_init(void)
     
     return true; // Initialization successful
 }
-#endif  
+#endif

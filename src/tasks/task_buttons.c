@@ -10,6 +10,7 @@
  */
 
  #include "task_buttons.h"
+ #include "task_console.h"
 
  #ifdef ECE353_FREERTOS
  /**
@@ -52,6 +53,7 @@
             if (sw1_debounce >= 2) {
                 // 30ms debounce complete (2 * 15ms), set event
                 xEventGroupSetBits(ECE353_RTOS_Events, ECE353_EVENT_SW1_PRESSED);
+                task_console_printf("SW1 Button Pressed\n");
                 sw1_debounce = 0;
             }
         } else {
@@ -72,6 +74,7 @@
             if (sw2_debounce >= 2) {
                 // 30ms debounce complete (2 * 15ms), set event
                 xEventGroupSetBits(ECE353_RTOS_Events, ECE353_EVENT_SW2_PRESSED);
+                task_console_printf("SW2 Button Pressed\n");
                 sw2_debounce = 0;
             }
         } else {
@@ -92,6 +95,7 @@
             if (sw3_debounce >= 2) {
                 // 30ms debounce complete (2 * 15ms), set event
                 xEventGroupSetBits(ECE353_RTOS_Events, ECE353_EVENT_SW3_PRESSED);
+                task_console_printf("SW3 Button Pressed\n");
                 sw3_debounce = 0;
             }
         } else {
@@ -106,11 +110,19 @@
  }
 
  /* Button Task Initialization */
-bool task_button_init(void){
+bool task_buttons_init(void){
 
+    cy_rslt_t rslt;
     BaseType_t result;
 
-    // Create the button task
+    // Initialize the IO pins used to control the buttons
+    rslt = buttons_init_gpio();
+    if (rslt != CY_RSLT_SUCCESS)
+    {
+        return false;
+    }
+
+    // Register the task task_buttons with the scheduler
     result = xTaskCreate(
         task_buttons, 
         "Button Task", 
