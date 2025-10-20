@@ -22,7 +22,8 @@
 typedef enum {
     LCD_CMD_CLEAR_SCREEN,
     LCD_CMD_DRAW_BOARD,
-    LCD_CMD_DRAW_CURSOR,
+    LCD_CMD_DRAW_TILE,
+    LCD_CMD_DRAW_SHIP,
     LCD_CONSOLE_DRAW_MESSAGE,
 } lcd_command_t;
 
