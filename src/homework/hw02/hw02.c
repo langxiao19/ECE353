@@ -67,20 +67,25 @@ void task_hw02_system_control(void *pvParameters)
     vTaskDelay(pdMS_TO_TICKS(1000)); // Pause to see the ships
 
     // Test invalid ship placements - these should be rejected by LCD gatekeeper  
+    bool invalid_ship_detected = false;
+    
     // Battleship at (0,7) horizontal - exceeds board width (would go to column 10)
-    if(!battleship_send_draw_ship(xQueue_LCD, xQueue_LCD_response, 0, 7, BATTLESHIP_TYPE_BATTLESHIP, true))
+    invalid_ship_detected = !battleship_send_draw_ship(xQueue_LCD, xQueue_LCD_response, 0, 7, BATTLESHIP_TYPE_BATTLESHIP, true);
+    if(invalid_ship_detected)
     {
         printf("Correctly detected invalid ship placement (too far right)\n\r");
     }
     
     // Submarine at (8,0) vertical - exceeds board height (goes to row 10)
-    if(!battleship_send_draw_ship(xQueue_LCD, xQueue_LCD_response, 8, 0, BATTLESHIP_TYPE_SUBMARINE, false))
+    invalid_ship_detected = !battleship_send_draw_ship(xQueue_LCD, xQueue_LCD_response, 8, 0, BATTLESHIP_TYPE_SUBMARINE, false);
+    if(invalid_ship_detected)
     {
         printf("Correctly detected invalid ship placement (too far down)\n\r");
     }
     
     // Carrier at (15,0) vertical - starts outside board boundaries
-    if(!battleship_send_draw_ship(xQueue_LCD, xQueue_LCD_response, 15, 0, BATTLESHIP_TYPE_CARRIER, false))
+    invalid_ship_detected = !battleship_send_draw_ship(xQueue_LCD, xQueue_LCD_response, 15, 0, BATTLESHIP_TYPE_CARRIER, false);
+    if(invalid_ship_detected)
     {
         printf("Correctly detected invalid ship placement (invalid coordinates)\n\r");
     }
