@@ -3,9 +3,14 @@
  * @author Joe Krachey (jkrachey@wisc.edu)
  * @brief 
  * @version 0.1
- * @date 2025-08-06
- * 
- * @copyright Copyright (c) 2025
+ * @date 2025-08-06	rslt = cyhal_i2c_master_mem_read(obj, subordinate_address, reg, 1, rx_data, 2, 0);
+	if (rslt != CY_RSLT_SUCCESS)
+	{
+		return rslt;
+	}
+	*value = (rx_data[0] << 8) | rx_data[1];
+	return rslt;
+}@copyright Copyright (c) 2025
  * 
  */
 #include "i2c.h"
@@ -27,6 +32,8 @@ cyhal_i2c_t * i2c_init(cyhal_gpio_t sda, cyhal_gpio_t scl)
 {
 	cy_rslt_t rslt;
 
+	cyhal_i2c_t *i2c_obj = pvPortMalloc(sizeof(cyhal_i2c_t));
+
 	// Initialize I2C master, set the SDA and SCL pins and assign a new clock
 	rslt = cyhal_i2c_init(&i2c_monarch_obj, sda, scl, NULL);
 
@@ -39,6 +46,7 @@ cyhal_i2c_t * i2c_init(cyhal_gpio_t sda, cyhal_gpio_t scl)
 	rslt = cyhal_i2c_configure(&i2c_monarch_obj, &i2c_monarch_config);
 	if (rslt != CY_RSLT_SUCCESS)
 	{
+		printf("I2C configuration failed\r\n");
 		return NULL;
 	}
 
@@ -58,6 +66,11 @@ cy_rslt_t i2c_write_u8(cyhal_i2c_t *obj, uint8_t subordinate_address, uint8_t re
 {
 	cy_rslt_t rslt = CY_RSLT_SUCCESS;
 
+	uint8_t data[2];
+	data[0] = reg;
+	data[1] = value;
+	rslt = cyhal_i2c_master_write(obj, subordinate_address, data, 2, 0, true);
+
 	return rslt;
 }
 
@@ -73,7 +86,14 @@ cy_rslt_t i2c_write_u8(cyhal_i2c_t *obj, uint8_t subordinate_address, uint8_t re
 cy_rslt_t i2c_read_u8(cyhal_i2c_t *obj, uint8_t subordinate_address, uint8_t reg, uint8_t *value)
 {
 	cy_rslt_t rslt = CY_RSLT_SUCCESS;
+	uint8_t rx_data = 0;
 
+	rslt = cyhal_i2c_master_mem_read(obj, subordinate_address, reg, 1, &rx_data, 1, 0);
+	if (rslt != CY_RSLT_SUCCESS)
+	{
+		return rslt;
+	}
+	*value = rx_data;
 	return rslt;
 }
 
@@ -89,6 +109,13 @@ cy_rslt_t i2c_read_u8(cyhal_i2c_t *obj, uint8_t subordinate_address, uint8_t reg
 cy_rslt_t i2c_read_u16(cyhal_i2c_t *obj, uint8_t subordinate_address, uint8_t reg, uint16_t *value)
 {
 	cy_rslt_t rslt = CY_RSLT_SUCCESS;
+	uint8_t rx_data[2];
 
+	rslt = cyhal_i2c_master_mem_read(obj, subordinate_address, reg, 1, rx_data, 2, 0);
+	if (rslt != CY_RSLT_SUCCESS)
+	{
+		return rslt;
+	}
+	*value = ((uint16_t)rx_data[0] << 8) | rx_data[1];
 	return rslt;
 }

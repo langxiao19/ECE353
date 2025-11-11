@@ -44,9 +44,18 @@ QueueHandle_t Queue_Light_Sensor_Requests;
  */
 static void ltr_light_sensor_start(void)
 {
-
     /* ADD CODE */
-
+    // First, perform a software reset
+    uint8_t value = LTR_REG_CONTR_SW_RESET;
+    i2c_write_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_CONTR, value);
+    vTaskDelay(pdMS_TO_TICKS(10)); // Wait for reset to complete
+    
+    // Set measurement rate (integration time 100ms, measurement rate 500ms)
+    i2c_write_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_MEAS_RATE, 0x03);
+    
+    // Enable ALS mode (Active mode)
+    value = LTR_REG_CONTR_ALS_MODE;
+    i2c_write_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_CONTR, value);
 }
 
 static uint8_t ltr_light_get_contr(void)
@@ -54,6 +63,7 @@ static uint8_t ltr_light_get_contr(void)
     uint8_t value = 0;
     
     /* ADD CODE */
+    i2c_read_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_CONTR, &value);
 
     return value;
 }
@@ -63,6 +73,7 @@ static uint8_t ltr_light_sensor_status(void)
     uint8_t value = 0;
 
     /* ADD CODE */
+    i2c_read_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_ALS_STATUS, &value);
 
     return value;
 }
@@ -77,6 +88,7 @@ static uint8_t ltr_light_sensor_part_id(void)
     uint8_t value = 0;
 
     /* ADD CODE */
+    i2c_read_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_PART_ID, &value);
 
     return value;
 }
@@ -86,6 +98,7 @@ static uint8_t ltr_light_sensor_manufac_id(void)
     uint8_t value = 0;
 
     /* ADD CODE */
+    i2c_read_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_MANUFAC_ID, &value);
 
     return value;
 }
@@ -97,6 +110,9 @@ static uint16_t ltr_light_sensor_get_ch0(void)
     uint16_t value = 0;
 
     /* ADD CODE */
+    i2c_read_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_ALS_DATA_CH0_0, &lsbyte);
+    i2c_read_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_ALS_DATA_CH0_1, &msbyte);
+    value = (msbyte << 8) | lsbyte;
 
     return value;
 }
@@ -108,21 +124,16 @@ static uint16_t ltr_light_sensor_get_ch1(void)
     uint16_t value = 0;
 
     /* ADD CODE */
+    i2c_read_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_ALS_DATA_CH1_0, &lsbyte);
+    i2c_read_u8(I2C_Obj, LTR_SUBORDINATE_ADDR, LTR_REG_ALS_DATA_CH1_1, &msbyte);
+    value = (msbyte << 8) | lsbyte;
 
     return value;
 }
 
 static void ltr_light_sensor_get_readings(uint16_t *ch1, uint16_t *ch0)
 {
-    uint8_t status = 0;
-
-    status = ltr_light_sensor_status();
-    while((status & LTR_REG_STATUS_NEW_DATA) != LTR_REG_STATUS_NEW_DATA)
-    {
-        // Wait
-        status = ltr_light_sensor_status();
-    }
-
+    // Read data - the sensor continuously updates the data registers
     *ch1 = ltr_light_sensor_get_ch1();
     *ch0 = ltr_light_sensor_get_ch0();
 }
@@ -138,8 +149,28 @@ static void ltr_light_sensor_get_readings(uint16_t *ch1, uint16_t *ch0)
 bool system_sensors_get_light(QueueHandle_t return_queue, uint16_t *ambient_light)
 {
     bool status = false;
+    device_request_msg_t packet;
+    device_response_msg_t response;
+
+    if (return_queue == NULL || ambient_light == NULL)
+    {
+        return false;
+    }
 
     /* ADD CODE */
+    packet.device = DEVICE_LIGHT;
+    packet.operation = DEVICE_OP_READ;
+    packet.response_queue = return_queue;
+
+    xQueueSend(Queue_Light_Sensor_Requests, &packet, portMAX_DELAY);
+    xQueueReceive(return_queue, &response, portMAX_DELAY);
+
+    *ambient_light = response.payload.light_sensor;
+
+    if (response.status == DEVICE_OPERATION_STATUS_READ_SUCCESS)
+    {
+        status = true;
+    }
 
     return status;
 }
@@ -158,7 +189,11 @@ void task_light_sensor(void *param)
 
 	printf("Starting Light Sensor Task\r\n");
 
+	// Verify manufacturer ID before starting
+	xSemaphoreTake(*I2C_Semaphore, portMAX_DELAY);
 	uint8_t manufac_id = ltr_light_sensor_manufac_id();
+	xSemaphoreGive(*I2C_Semaphore);
+	
     if(manufac_id != 0x05)
     {
         printf("Light Sensor Manufacturer ID Invalid: 0x%02X\r\n", manufac_id);
@@ -176,7 +211,29 @@ void task_light_sensor(void *param)
 
 	while (1)
 	{
-        // ADD CODE
+		/* Wait for a message */
+		xQueueReceive(Queue_Light_Sensor_Requests, &request_packet, portMAX_DELAY);
+		
+		if (request_packet.operation == DEVICE_OP_READ && request_packet.device == DEVICE_LIGHT)
+		{
+			uint16_t ch1 = 0;
+			uint16_t ch0 = 0;
+			
+			/* Take semaphore to access I2C bus */
+			xSemaphoreTake(*I2C_Semaphore, portMAX_DELAY);
+			ltr_light_sensor_get_readings(&ch1, &ch0);
+			xSemaphoreGive(*I2C_Semaphore);
+
+			// return the light sensor reading (CH0)
+			response_packet.device = DEVICE_LIGHT;
+			response_packet.status = DEVICE_OPERATION_STATUS_READ_SUCCESS;
+			response_packet.payload.light_sensor = ch0;
+			xQueueSend(request_packet.response_queue, &response_packet, portMAX_DELAY);
+		}
+		else
+		{
+			printf("Light Sensor Task: Invalid request received\r\n");
+		}
     }
 }
 

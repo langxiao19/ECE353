@@ -49,6 +49,18 @@ static float LM75_get_temp(void)
 	float temp = 0.0f;
 
 	/* ADD CODE */	
+	uint16_t raw_value = 0;
+	cy_rslt_t rslt;
+
+	//Read 2-bytes from the temperature register
+	rslt = i2c_read_u16(I2C_Obj, LM75_SUBORDINATE_ADDR, LM75_TEMP_REG, &raw_value);
+	if (rslt != CY_RSLT_SUCCESS)
+	{
+		return 0;
+	}
+
+	temp = (float)(raw_value >> 7);
+	temp *= 0.5f;
 
 	return temp;
 }
@@ -56,8 +68,13 @@ static float LM75_get_temp(void)
 static uint8_t LM75_get_product_id(void)
 {
 	uint8_t prod_id = 0;
-
-	/* ADD CODE */	
+	cy_rslt_t rslt;
+	/* ADD CODE */
+	rslt = i2c_read_u8(I2C_Obj, LM75_SUBORDINATE_ADDR, LM75_PRODUCT_ID_REG, &prod_id);
+	if (rslt != CY_RSLT_SUCCESS)
+	{
+		return 0;
+	}	
 
 	return prod_id;
 }
@@ -73,11 +90,34 @@ static uint8_t LM75_get_product_id(void)
  */
 bool system_sensors_get_temp(QueueHandle_t return_queue, float *temperature)
 {
-	bool status = true;
+	device_request_msg_t packet;
+	device_response_msg_t response;
+
+	if (return_queue == NULL || temperature == NULL)
+	{
+		return false;
+	}	
 
 	/* ADD CODE */
+	packet.device = DEVICE_TEMPERATURE;
+	packet.operation = DEVICE_OP_READ;
+	packet.response_queue = return_queue;
 
-	return status;
+	xQueueSend(Queue_Temp_Sensor_Requests, &packet, portMAX_DELAY);
+
+	xQueueReceive(return_queue, &response, portMAX_DELAY);
+
+	*temperature = response.payload.temperature;
+
+	if (response.status != DEVICE_OPERATION_STATUS_READ_SUCCESS)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+
 }
 
 /**
@@ -88,8 +128,8 @@ bool system_sensors_get_temp(QueueHandle_t return_queue, float *temperature)
  */
 void task_temp_sensor(void *param)
 {
-	device_request_msg_t request_packet;
-	device_response_msg_t response_packet;
+	temp_sensor_packet_t request_packet;
+	temp_sensor_packet_t response_packet;
 	
 	printf("Starting Temp Sensor Task\r\n");
 
@@ -98,15 +138,14 @@ void task_temp_sensor(void *param)
 	
 	// Verify that the temp sensor is connected by reading the product ID
 	uint8_t prod_id = LM75_get_product_id();
-	if(prod_id == LM75_PRODUCT_ID)
+	if (prod_id != LM75_PRODUCT_ID)
 	{
-		printf("Temp Sensor Detected!\r\n");
-	}
-	else
-	{
-		printf("Temp Sensor NOT Detected! 0x%02X\r\n", prod_id);
+		printf("Temp Sensor not found! Expected 0x%02X, Read 0x%02X\r\n", LM75_PRODUCT_ID, prod_id);
 		vTaskDelay(pdMS_TO_TICKS(1000));
 		CY_ASSERT(0);
+	}
+	else{
+		printf("Temp Sensor found! Product ID = 0x%02X\r\n", prod_id);
 	}
 
 	// give the semaphore back
@@ -115,8 +154,20 @@ void task_temp_sensor(void *param)
 	while (1)
 	{
 		/* Wait for a message */
+		xQueueReceive(Queue_Temp_Sensor_Requests, &request_packet, portMAX_DELAY);
+		
+		if (request_packet.operation == TEMP_SENSOR_READ)
+		{
+			/* ADD CODE */
+			xSemaphoreTake(*I2C_Semaphore, portMAX_DELAY);
+			float temperature = LM75_get_temp();
+			xSemaphoreGive(*I2C_Semaphore);
 
-		/* ADD CODE */
+			// return the temperature reading
+			response_packet.operation = TEMP_SENSOR_RESPONSE;
+			response_packet.value = temperature;
+			xQueueSend(request_packet.return_queue, &response_packet, portMAX_DELAY);
+		}
 	}
 }
 
@@ -138,7 +189,7 @@ bool task_temp_sensor_resources_init(cyhal_i2c_t *i2c_obj, SemaphoreHandle_t *i2
 	}	
 
 	/* Create the Queue used to receive requests  */
-	Queue_Temp_Sensor_Requests = xQueueCreate(1, sizeof(device_request_msg_t));
+	Queue_Temp_Sensor_Requests = xQueueCreate(1, sizeof(temp_sensor_packet_t));
 	if (Queue_Temp_Sensor_Requests == NULL)
 	{
 		return false;
