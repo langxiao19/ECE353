@@ -63,11 +63,14 @@
 //#define ICE10       /* In-Class Exercise -- FreeRTOS UART Tx IRQ + Buffering  */
 //#define ICE11
 //#define ICE12       /* In-Class Exercise -- FreeRTOS IMU Task */
-#define ICE13       /* In-Class Exercise -- FreeRTOS Temp Sensor Task */
+//#define ICE13       /* In-Class Exercise -- FreeRTOS Temp Sensor Task */
+//#define ICE14       /* In-Class Exercise -- FreeRTOS I2C IO Expander*/
+
 
 //#define HW01
 //#define HW02
 //#define HW03
+#define HW05
 
 extern char NAME[];
 extern char APP_DESCRIPTION[];

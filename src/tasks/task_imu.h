@@ -16,10 +16,14 @@
 #if defined(ECE353_FREERTOS)
 #include "cyhal_spi.h"
 #include "imu.h"
+#include "devices.h"
 
 #define TASK_IMU_PRIORITY        (tskIDLE_PRIORITY + 2)
 #define TASK_IMU_STACK_SIZE      (1024)
 
+extern QueueHandle_t Queue_IMU_Requests;
+
+bool system_sensors_imu_read(QueueHandle_t return_queue, int16_t imu_data[3]);
 bool task_imu_resources_init(void *spi_semaphore, cyhal_spi_t *spi_obj, cyhal_gpio_t cs_pin);
 void task_imu(void *arg);
 #endif /* ECE353_FREERTOS */

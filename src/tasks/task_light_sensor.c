@@ -187,22 +187,6 @@ void task_light_sensor(void *param)
     device_request_msg_t request_packet;
     device_response_msg_t response_packet;
 
-	printf("Starting Light Sensor Task\r\n");
-
-	// Verify manufacturer ID before starting
-	xSemaphoreTake(*I2C_Semaphore, portMAX_DELAY);
-	uint8_t manufac_id = ltr_light_sensor_manufac_id();
-	xSemaphoreGive(*I2C_Semaphore);
-	
-    if(manufac_id != 0x05)
-    {
-        printf("Light Sensor Manufacturer ID Invalid: 0x%02X\r\n", manufac_id);
-        vTaskSuspend(NULL);
-    }
-    else {
-        printf("Light Sensor Manufacturer ID Valid: 0x%02X\r\n", manufac_id);
-    }
-
 	// grab the semaphore to access the bus
 	xSemaphoreTake(*I2C_Semaphore, portMAX_DELAY);
 	ltr_light_sensor_start();
