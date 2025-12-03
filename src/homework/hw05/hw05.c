@@ -100,7 +100,7 @@ void task_system_control(void *arg)
     system_sensors_io_expander_write(NULL, IOXP_ADDR_CONFIG, 0x80); //Set P7 as input, all others as outputs
     
     /* Set the initial state of the LEDs*/
-    system_sensors_io_expander_write(NULL, IOXP_ADDR_OUTPUT_PORT, 0x01); //Turn on LED0
+    system_sensors_io_expander_write(NULL, IOXP_ADDR_OUTPUT_PORT, 0x81); //Turn on LED0 and enable pull-up on P7
 
     while(1)
     {

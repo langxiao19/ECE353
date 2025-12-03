@@ -132,14 +132,21 @@ bool system_sensors_imu_read(QueueHandle_t return_queue, int16_t imu_data[3])
             // Process the request based on operation type
             if (request_packet.operation == DEVICE_OP_READ)
             {
+                uint8_t raw_data[6];
+                
                 // Read the accelerometer data
                 imu_read_registers(
                     imu_spi_obj, 
                     imu_cs_pin, 
                     IMU_REG_OUTX_L_XL, 
-                    (uint8_t *)accel_data, 
+                    raw_data, 
                     6
                 );
+
+                // Properly combine the bytes (little-endian format)
+                accel_data[0] = -((int16_t)((raw_data[1] << 8) | raw_data[0])); // X-axis (inverted)
+                accel_data[1] = (int16_t)((raw_data[3] << 8) | raw_data[2]); // Y-axis
+                accel_data[2] = (int16_t)((raw_data[5] << 8) | raw_data[4]); // Z-axis
 
                 // Send the response back with the data
                 if (request_packet.response_queue != NULL)

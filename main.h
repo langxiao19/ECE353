@@ -70,7 +70,8 @@
 //#define HW01
 //#define HW02
 //#define HW03
-#define HW05
+//#define HW05
+#define HW06
 
 extern char NAME[];
 extern char APP_DESCRIPTION[];

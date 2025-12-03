@@ -52,7 +52,7 @@ typedef struct {
         uint16_t light_sensor;
         uint8_t io_expander;
         uint8_t eeprom;
-        uint16_t imu[3];
+        int16_t imu[3];
     } payload;
 } device_response_msg_t ;
 
