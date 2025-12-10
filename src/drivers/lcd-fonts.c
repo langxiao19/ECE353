@@ -3344,7 +3344,7 @@ const FONT_INFO Consolas_20ptFontInfo =
 	27, /*  Character height */
 	' ', /*  Start character */
 	'~', /*  End character */
-	NULL, /*  Character block lookup */
+	7, /*  Space width */
 	Consolas_20ptDescriptors, /*  Character descriptor array */
 	Consolas_20ptBitmaps, /*  Character bitmap array */
 };

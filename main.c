@@ -55,12 +55,8 @@
 * Global Variables
 *******************************************************************************/
 char NAME[] = "Langlang Xiao"; // Replace with your name
+char APP_DESCRIPTION[] = "HW06 Battleship";
 volatile ece353_events_t ECE353_Events;
-
-#ifdef ECE353_FREERTOS
-/* FreeRTOS Event Group */
-EventGroupHandle_t ECE353_RTOS_Events;
-#endif
 
 /*******************************************************************************
 * Function Prototypes

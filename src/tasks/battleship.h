@@ -52,9 +52,11 @@ typedef struct{
     bool horizontal;        // Orientation of ship
 } battleship_payload_t;
 
+bool battleship_get_box_coordinates(lcd_coord_t *coord, uint8_t col, uint8_t row);
 bool battleship_draw_game_board(uint8_t player_id);
 bool battleship_draw_cursor(uint8_t col, uint8_t row, uint16_t border_color, uint16_t fill_color);
 bool battleship_clear_cursor(uint8_t col, uint8_t row, uint8_t player_id);
+bool battleship_draw_ship(uint8_t col, uint8_t row, battleship_type_t type, bool horizontal, uint16_t border_color, uint16_t fill_color);
 
 // Helper functions for LCD gatekeeper communication
 bool battleship_send_clear_screen(QueueHandle_t request_queue, QueueHandle_t response_queue);

@@ -18,6 +18,9 @@
 
 /* Globals */
 TaskHandle_t TaskHandle_IPC_Rx = NULL;
+QueueHandle_t Queue_IPC_Rx_Game_Control = NULL;
+QueueHandle_t Queue_IPC_Rx_Fire = NULL;
+QueueHandle_t Queue_IPC_Rx_Result = NULL;
 
 /* Use a double buffering strategy for IPC packets */
 static volatile ipc_packet_t IPC_Rx_Buffer0;
@@ -64,6 +67,9 @@ void task_ipc_rx(void *param)
             case IPC_CMD_FIRE:
                 printf("[IPC RX] FIRE command received: Row=%d, Col=%d\n\r", 
                        packet.fire.row, packet.fire.col);
+                if(Queue_IPC_Rx_Fire != NULL) {
+                    xQueueSend(Queue_IPC_Rx_Fire, &packet.fire, 0);
+                }
                 break;
 
             case IPC_CMD_RESULT:
@@ -83,6 +89,9 @@ void task_ipc_rx(void *param)
                         printf("Unknown (0x%02X)\n\r", packet.result);
                         break;
                 }
+                if(Queue_IPC_Rx_Result != NULL) {
+                    xQueueSend(Queue_IPC_Rx_Result, &packet.result, 0);
+                }
                 break;
 
             case IPC_CMD_GAME_CONTROL:
@@ -91,6 +100,9 @@ void task_ipc_rx(void *param)
                 {
                     case IPC_GAME_CONTROL_NEW_GAME:
                         printf("NEW_GAME\n\r");
+                        if(Queue_IPC_Rx_Game_Control != NULL) {
+                            xQueueSend(Queue_IPC_Rx_Game_Control, &packet.game_control, 0);
+                        }
                         break;
                     case IPC_GAME_CONTROL_PLAYER_READY:
                         printf("PLAYER_READY\n\r");
@@ -144,6 +156,24 @@ void task_ipc_rx(void *param)
 
 bool task_ipc_resources_init_rx(void)
 {
+    // Create queue for game control messages
+    Queue_IPC_Rx_Game_Control = xQueueCreate(5, sizeof(ipc_game_control_t));
+    if(Queue_IPC_Rx_Game_Control == NULL) {
+        return false;
+    }
+    
+    // Create queue for incoming fire commands
+    Queue_IPC_Rx_Fire = xQueueCreate(5, sizeof(ipc_fire_payload_t));
+    if(Queue_IPC_Rx_Fire == NULL) {
+        return false;
+    }
+    
+    // Create queue for result messages
+    Queue_IPC_Rx_Result = xQueueCreate(5, sizeof(ipc_result_t));
+    if(Queue_IPC_Rx_Result == NULL) {
+        return false;
+    }
+    
     // Create the IPC Rx Task
     BaseType_t task_ipc_rx_status = xTaskCreate(
         task_ipc_rx,                 // Function that implements the task.

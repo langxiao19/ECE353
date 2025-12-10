@@ -99,6 +99,15 @@ extern TaskHandle_t TaskHandle_IPC_Rx;
 extern QueueHandle_t Queue_IPC_Tx;
 extern TaskHandle_t TaskHandle_IPC_Tx;
 
+/* Queue for receiving game control messages */
+extern QueueHandle_t Queue_IPC_Rx_Game_Control;
+
+/* Queue for receiving fire commands */
+extern QueueHandle_t Queue_IPC_Rx_Fire;
+
+/* Queue for receiving result messages */
+extern QueueHandle_t Queue_IPC_Rx_Result;
+
 /* Globals Debug Messages*/
 bool task_ipc_resources_init_rx(void);
 bool task_ipc_resources_init_tx(void);
